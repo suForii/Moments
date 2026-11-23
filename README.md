@@ -99,18 +99,24 @@ Photos can be filtered by **People**, **Time**, **Location**, and **Status**.
 Within the selected shared album, show a photo only when `containsMe` and `deliveredToMe` are true and `deliveryState` is completed. A match to another person or a saved bookmark must not make a photo eligible. v1 supplies explicitly labeled sample matching/delivery states; user uploads do not automatically qualify.
 
 #### Album Invitations
-![Album header and invitation action](previewImages/task-2-album-header-and-actions.png)
+
+<p align="left"><img src="previewImages/task-2-album-header-and-actions.png" alt="Album header and invitation action"></p>
 
 The invitation dialog: **invite people**
 
 Offers two join methods: an invitation code and a QR image:
+
 <p align="left"><img src="previewImages/task-2-invite-album-qr-code.png" width="226" alt="Album invitation QR code"></p>
+
 **Copy invite code** copies the code; **Save QR code** downloads a PNG. Custom events must already exist in the joining browser until a backend is available.
+
 ##### Filter
+
 Displays only **Time** and **Location**, because this view already limits results to completed photos that were matched and delivered to the current user.
 
 #### Add photos
-![Album header and add photos action](previewImages/task-2-album-header-and-actions.png)
+
+<p align="left"><img src="previewImages/task-2-album-header-and-actions.png" alt="Album header and add photos action"></p>
 
 The button: add photos
 click this button to upload photos from computer.
@@ -130,9 +136,12 @@ The top-right corner of each photo displays a **status icon**. The icon provides
 | Delivery completed  | Check icon, green                      | The delivery stage is complete                                      |
 Users can view the complete status details through the **hover tooltip** on each photo’s status icon or through the **Transfer activity** floating card.
 
-![Photo hover actions](previewImages/task-2-photo-hover-actions.png)
+<p align="left"><img src="previewImages/task-2-photo-hover-actions.png" alt="Photo hover actions"></p>
+
 ### Transfer Activity Popover
-![Top bar transfer activity control](previewImages/task-2-top-bar-controls.png)
+
+<p align="left"><img src="previewImages/task-2-top-bar-controls.png" alt="Top bar transfer activity control"></p>
+
 The top-bar bell is an upload/delivery transfer icon. Clicking it toggles a non-modal floating card anchored beneath the icon. Clicking outside, pressing Escape, or using Close dismisses it.
 
 - Scope activity to the selected event and preserve the album, filters, and page position.
@@ -146,7 +155,9 @@ Acceptance: the icon toggles the card without navigation; both views list the se
 
 ### Photo Sharing and Download
 Clicking a photo's share control opens a centered floating dialog for Moments friends, Instagram, TikTok, Facebook, X, and copying the image link.
+
 <p align="left"><img src="previewImages/task-2-photo-hover-actions.png" width="265" alt="Photo sharing action"></p>
+
 <p align="left"><img src="previewImages/task-2-share-photo-dialog.png" width="270" alt="Share photo dialog"></p>
 
 Moments friends use a distinct product color because they refer to relationships inside the website; external platforms use neutral styling. Facebook and X open their web share flows. Instagram and TikTok copy the image link before opening the platform because they do not provide equivalent desktop URL share composers. The adjacent download control downloads the image file instead of bookmarking it.
