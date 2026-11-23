@@ -23,10 +23,13 @@ The desktop step creates a QR code for a short-lived enrollment URL and waits fo
 Clicking either profile avatar opens a desktop account-settings dialog. Selecting **My selfies** opens a dedicated face-settings dialog that mirrors setup step 1, shows the current enrollment state, and allows the user to replace all three reference angles without repeating the privacy step.
 
 <img src="previewImages/set-up_1_mySelfieUpload.png" width="261" alt="Selfie enrollment setup">
-### Mobile Selfie Enrollment — Production Architecture
+
+###Mobile Selfie Enrollment — Production Architecture
 
 The production implementation may remain a responsive website; a native mobile app is not required for this use case. The desktop client creates a single-use enrollment session and encodes its short-lived URL in the QR code. The phone page uses `getUserMedia()` over HTTPS, guides the user through front, left-turn, and right-turn captures, performs basic quality checks, and uploads each compressed image through signed object-storage URLs. The desktop subscribes through SSE or WebSocket, or polls the session endpoint, until all three captures are accepted.
+
 <img src="previewImages/mobiletoUploadMySelfie.png" width="246" alt="Mobile selfie enrollment">
+
 Required production endpoints:
 
 | Method | Endpoint | Purpose |
@@ -126,6 +129,7 @@ The top-right corner of each photo displays a **status icon**. The icon provides
 | Upload completed    | Check icon, green                      | The upload stage is complete; in v1, the photo is available locally |
 | Delivery completed  | Check icon, green                      | The delivery stage is complete                                      |
 Users can view the complete status details through the **hover tooltip** on each photo’s status icon or through the **Transfer activity** floating card.
+
 ![Photo hover actions](previewImages/task-2-photo-hover-actions.png)
 ### Transfer Activity Popover
 ![Top bar transfer activity control](previewImages/task-2-top-bar-controls.png)
