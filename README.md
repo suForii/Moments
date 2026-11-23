@@ -13,7 +13,7 @@ The v1 release is an interactive frontend prototype for desktop and laptop scree
 First time when entering, get started to register or log in
 ![Moments setup welcome screen](previewImages/set-up%20homepage.png)
 
-<img src="previewImages/Register.png" width="293" alt="Moments registration screen">
+<p align="left"><img src="previewImages/Register.png" width="293" alt="Moments registration screen"></p>
 
 After creating account, there will be two-step set-up:
 
@@ -22,13 +22,13 @@ The desktop step creates a QR code for a short-lived enrollment URL and waits fo
 
 Clicking either profile avatar opens a desktop account-settings dialog. Selecting **My selfies** opens a dedicated face-settings dialog that mirrors setup step 1, shows the current enrollment state, and allows the user to replace all three reference angles without repeating the privacy step.
 
-<img src="previewImages/set-up_1_mySelfieUpload.png" width="261" alt="Selfie enrollment setup">
+<p align="left"><img src="previewImages/set-up_1_mySelfieUpload.png" width="261" alt="Selfie enrollment setup"></p>
 
 ### Mobile Selfie Enrollment — Production Architecture
 
 The production implementation may remain a responsive website; a native mobile app is not required for this use case. The desktop client creates a single-use enrollment session and encodes its short-lived URL in the QR code. The phone page uses `getUserMedia()` over HTTPS, guides the user through front, left-turn, and right-turn captures, performs basic quality checks, and uploads each compressed image through signed object-storage URLs. The desktop subscribes through SSE or WebSocket, or polls the session endpoint, until all three captures are accepted.
 
-<img src="previewImages/mobiletoUploadMySelfie.png" width="246" alt="Mobile selfie enrollment">
+<p align="left"><img src="previewImages/mobiletoUploadMySelfie.png" width="246" alt="Mobile selfie enrollment"></p>
 
 Required production endpoints:
 
@@ -47,23 +47,23 @@ permission 1: **Use my face for matching**: Allow Moments to make a face signatu
 permission 2: **Match people in my uploads**Allow my event photos to be checked for members who opted in, so they can privately receive their photos
 
 Clicking either profile avatar opens a desktop account-settings dialog and to adjust this privacy setting.
-<img src="previewImages/set-up_2_privacy%20setting.png" width="314" alt="Privacy settings setup">
+<p align="left"><img src="previewImages/set-up_2_privacy%20setting.png" width="314" alt="Privacy settings setup"></p>
 
 ## 3. Function 2 — Create / Join Albums
 
 ### Create albums
 Use the panel icon in the left navigation rail to show or hide the album sidebar. 
 In the sidebar, click **Create an event** to open the album creation dialog.
-<img src="previewImages/task-2-album-sidebar-and-photo-views.png" width="349" alt="Album sidebar and photo views">
+<p align="left"><img src="previewImages/task-2-album-sidebar-and-photo-views.png" width="349" alt="Album sidebar and photo views"></p>
 
 then there will be a floating card of an event album. 
 Enter the name, date and location to initialize an event album.
 
-<img src="previewImages/task-2-create-album-dialog.png" width="246" alt="Create album dialog">
+<p align="left"><img src="previewImages/task-2-create-album-dialog.png" width="246" alt="Create album dialog"></p>
 
 Users can also join an event album by searching invite code or scanning via QR code by clicking QR icon to upload it.
 
-<img src="previewImages/task-2-album-sidebar-and-photo-views.png" width="349" alt="Join album interface">
+<p align="left"><img src="previewImages/task-2-album-sidebar-and-photo-views.png" width="349" alt="Join album interface"></p>
 
 ## 4. Function 3 — Shared Albums and Photo Delivery
 
@@ -91,7 +91,7 @@ Photos can be filtered by **People**, **Time**, **Location**, and **Status**.
 - Empty results display a clear empty state.
 - Reset restores the unfiltered results for the current photo view.
 - Filters never expose photos outside the selected album or the user’s permitted view.
-<img src="previewImages/task-2-photo-filters.png" width="452" alt="Photo filters">
+<p align="left"><img src="previewImages/task-2-photo-filters.png" width="452" alt="Photo filters"></p>
 
 
 #### Photos of Me
@@ -104,7 +104,7 @@ Within the selected shared album, show a photo only when `containsMe` and `deliv
 The invitation dialog: **invite people**
 
 Offers two join methods: an invitation code and a QR image:
-<img src="previewImages/task-2-invite-album-qr-code.png" width="226" alt="Album invitation QR code">
+<p align="left"><img src="previewImages/task-2-invite-album-qr-code.png" width="226" alt="Album invitation QR code"></p>
 **Copy invite code** copies the code; **Save QR code** downloads a PNG. Custom events must already exist in the joining browser until a backend is available.
 ##### Filter
 Displays only **Time** and **Location**, because this view already limits results to completed photos that were matched and delivered to the current user.
@@ -146,7 +146,8 @@ Acceptance: the icon toggles the card without navigation; both views list the se
 
 ### Photo Sharing and Download
 Clicking a photo's share control opens a centered floating dialog for Moments friends, Instagram, TikTok, Facebook, X, and copying the image link.
-<img src="previewImages/task-2-photo-hover-actions.png" width="265" alt="Photo sharing action"> <img src="previewImages/task-2-share-photo-dialog.png" width="270" alt="Share photo dialog">
+<p align="left"><img src="previewImages/task-2-photo-hover-actions.png" width="265" alt="Photo sharing action"></p>
+<p align="left"><img src="previewImages/task-2-share-photo-dialog.png" width="270" alt="Share photo dialog"></p>
 
 Moments friends use a distinct product color because they refer to relationships inside the website; external platforms use neutral styling. Facebook and X open their web share flows. Instagram and TikTok copy the image link before opening the platform because they do not provide equivalent desktop URL share composers. The adjacent download control downloads the image file instead of bookmarking it.
 
