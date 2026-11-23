@@ -11,9 +11,9 @@ The v1 release is an interactive frontend prototype for desktop and laptop scree
 **First-time setup remains a two-step flow:**
 
 First time when entering, get started to register or log in
-![[set-up homepage.png]]
+![Moments setup welcome screen](previewImages/set-up%20homepage.png)
 
-![[Register.png|293]]
+<img src="previewImages/Register.png" width="293" alt="Moments registration screen">
 
 After creating account, there will be two-step set-up:
 
@@ -22,11 +22,11 @@ The desktop step creates a QR code for a short-lived enrollment URL and waits fo
 
 Clicking either profile avatar opens a desktop account-settings dialog. Selecting **My selfies** opens a dedicated face-settings dialog that mirrors setup step 1, shows the current enrollment state, and allows the user to replace all three reference angles without repeating the privacy step.
 
-![[set-up_1_mySelfieUpload.png|261]]
+<img src="previewImages/set-up_1_mySelfieUpload.png" width="261" alt="Selfie enrollment setup">
 ### Mobile Selfie Enrollment — Production Architecture
 
 The production implementation may remain a responsive website; a native mobile app is not required for this use case. The desktop client creates a single-use enrollment session and encodes its short-lived URL in the QR code. The phone page uses `getUserMedia()` over HTTPS, guides the user through front, left-turn, and right-turn captures, performs basic quality checks, and uploads each compressed image through signed object-storage URLs. The desktop subscribes through SSE or WebSocket, or polls the session endpoint, until all three captures are accepted.
-![[mobiletoUploadMySelfie.png|246]]
+<img src="previewImages/mobiletoUploadMySelfie.png" width="246" alt="Mobile selfie enrollment">
 Required production endpoints:
 
 | Method | Endpoint | Purpose |
@@ -44,23 +44,23 @@ permission 1: **Use my face for matching**: Allow Moments to make a face signatu
 permission 2: **Match people in my uploads**Allow my event photos to be checked for members who opted in, so they can privately receive their photos
 
 Clicking either profile avatar opens a desktop account-settings dialog and to adjust this privacy setting.
-![[set-up_2_privacy setting.png|314]]
+<img src="previewImages/set-up_2_privacy%20setting.png" width="314" alt="Privacy settings setup">
 
 ## 3. Function 2 — Create / Join Albums
 
 ### Create albums
 Use the panel icon in the left navigation rail to show or hide the album sidebar. 
 In the sidebar, click **Create an event** to open the album creation dialog.
-![[task-2-album-sidebar-and-photo-views.png|349]]
+<img src="previewImages/task-2-album-sidebar-and-photo-views.png" width="349" alt="Album sidebar and photo views">
 
 then there will be a floating card of an event album. 
 Enter the name, date and location to initialize an event album.
 
-![[task-2-create-album-dialog.png|246]]
+<img src="previewImages/task-2-create-album-dialog.png" width="246" alt="Create album dialog">
 
 Users can also join an event album by searching invite code or scanning via QR code by clicking QR icon to upload it.
 
-![[task-2-album-sidebar-and-photo-views.png|349]]
+<img src="previewImages/task-2-album-sidebar-and-photo-views.png" width="349" alt="Join album interface">
 
 ## 4. Function 3 — Shared Albums and Photo Delivery
 
@@ -88,7 +88,7 @@ Photos can be filtered by **People**, **Time**, **Location**, and **Status**.
 - Empty results display a clear empty state.
 - Reset restores the unfiltered results for the current photo view.
 - Filters never expose photos outside the selected album or the user’s permitted view.
-![[task-2-photo-filters.png|452]]
+<img src="previewImages/task-2-photo-filters.png" width="452" alt="Photo filters">
 
 
 #### Photos of Me
@@ -96,18 +96,18 @@ Photos can be filtered by **People**, **Time**, **Location**, and **Status**.
 Within the selected shared album, show a photo only when `containsMe` and `deliveredToMe` are true and `deliveryState` is completed. A match to another person or a saved bookmark must not make a photo eligible. v1 supplies explicitly labeled sample matching/delivery states; user uploads do not automatically qualify.
 
 #### Album Invitations
-![[task-2-album-header-and-actions.png]]
+![Album header and invitation action](previewImages/task-2-album-header-and-actions.png)
 
 The invitation dialog: **invite people**
 
 Offers two join methods: an invitation code and a QR image:
-![[task-2-invite-album-qr-code.png|226]]
+<img src="previewImages/task-2-invite-album-qr-code.png" width="226" alt="Album invitation QR code">
 **Copy invite code** copies the code; **Save QR code** downloads a PNG. Custom events must already exist in the joining browser until a backend is available.
 ##### Filter
 Displays only **Time** and **Location**, because this view already limits results to completed photos that were matched and delivered to the current user.
 
 #### Add photos
-![[task-2-album-header-and-actions.png]]
+![Album header and add photos action](previewImages/task-2-album-header-and-actions.png)
 
 The button: add photos
 click this button to upload photos from computer.
@@ -126,9 +126,9 @@ The top-right corner of each photo displays a **status icon**. The icon provides
 | Upload completed    | Check icon, green                      | The upload stage is complete; in v1, the photo is available locally |
 | Delivery completed  | Check icon, green                      | The delivery stage is complete                                      |
 Users can view the complete status details through the **hover tooltip** on each photo’s status icon or through the **Transfer activity** floating card.
-![[task-2-photo-hover-actions.png]]
+![Photo hover actions](previewImages/task-2-photo-hover-actions.png)
 ### Transfer Activity Popover
-![[task-2-top-bar-controls.png]]
+![Top bar transfer activity control](previewImages/task-2-top-bar-controls.png)
 The top-bar bell is an upload/delivery transfer icon. Clicking it toggles a non-modal floating card anchored beneath the icon. Clicking outside, pressing Escape, or using Close dismisses it.
 
 - Scope activity to the selected event and preserve the album, filters, and page position.
@@ -142,7 +142,7 @@ Acceptance: the icon toggles the card without navigation; both views list the se
 
 ### Photo Sharing and Download
 Clicking a photo's share control opens a centered floating dialog for Moments friends, Instagram, TikTok, Facebook, X, and copying the image link.
-![[task-2-photo-hover-actions.png|265]]![[task-2-share-photo-dialog.png|270]] 
+<img src="previewImages/task-2-photo-hover-actions.png" width="265" alt="Photo sharing action"> <img src="previewImages/task-2-share-photo-dialog.png" width="270" alt="Share photo dialog">
 
 Moments friends use a distinct product color because they refer to relationships inside the website; external platforms use neutral styling. Facebook and X open their web share flows. Instagram and TikTok copy the image link before opening the platform because they do not provide equivalent desktop URL share composers. The adjacent download control downloads the image file instead of bookmarking it.
 
