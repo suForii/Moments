@@ -1,0 +1,46 @@
+{
+  "fileName": "moments_website/desktop",
+  "pageName": "desktop ",
+  "pageId": "1:3633",
+  "workspace": {
+    "id": "22:467",
+    "name": "Moments · Desktop · Website v1"
+  },
+  "dialogs": [
+    {
+      "id": "22:604",
+      "name": "Moments · Welcome · .dialog"
+    },
+    {
+      "id": "22:605",
+      "name": "Moments · Sign up · .dialog"
+    },
+    {
+      "id": "22:606",
+      "name": "Moments · Log in · .dialog"
+    },
+    {
+      "id": "22:607",
+      "name": "Moments · Myself setup · .dialog"
+    },
+    {
+      "id": "22:608",
+      "name": "Moments · Privacy settings · .dialog"
+    },
+    {
+      "id": "22:609",
+      "name": "Moments · Create event · .dialog"
+    },
+    {
+      "id": "22:610",
+      "name": "Moments · Invite people · .dialog"
+    }
+  ],
+  "source": {
+    "html": "dist/index.html",
+    "styles": "dist/style.css",
+    "ui": "dist/app.js",
+    "services": "dist/services.js"
+  },
+  "note": "Editable reconstruction from website source. Not an automatic HTML import or live two-way sync. Read actual Figma design context before applying user edits to code."
+}
