@@ -24,7 +24,7 @@ Clicking either profile avatar opens a desktop account-settings dialog. Selectin
 
 <img src="previewImages/set-up_1_mySelfieUpload.png" width="261" alt="Selfie enrollment setup">
 
-###Mobile Selfie Enrollment — Production Architecture
+### Mobile Selfie Enrollment — Production Architecture
 
 The production implementation may remain a responsive website; a native mobile app is not required for this use case. The desktop client creates a single-use enrollment session and encodes its short-lived URL in the QR code. The phone page uses `getUserMedia()` over HTTPS, guides the user through front, left-turn, and right-turn captures, performs basic quality checks, and uploads each compressed image through signed object-storage URLs. The desktop subscribes through SSE or WebSocket, or polls the session endpoint, until all three captures are accepted.
 
