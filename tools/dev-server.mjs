@@ -9,6 +9,18 @@ import { createDb } from './local-db.mjs';
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const port = Number(process.env.PORT || 8930);
 const { as, rpc, addUser } = await createDb();
+// Apply the production security headers here too, so problems show up early.
+const headers = Object.fromEntries(
+  (await readFile(join(root, '_headers'), 'utf8'))
+    .split('\n')
+    .filter((l) => l.startsWith('  '))
+    .map((l) =>
+      l
+        .trim()
+        .split(/: (.*)/s)
+        .slice(0, 2),
+    ),
+);
 const users = new Map(), // email -> { id, email, password, name }
   tokens = new Map(), // access or refresh token -> user
   files = new Map(), // path -> Buffer
@@ -18,6 +30,8 @@ const types = {
   '.js': 'text/javascript',
   '.css': 'text/css',
   '.json': 'application/json',
+  '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2',
 };
 
 function session(user) {
@@ -145,6 +159,7 @@ http
         res.writeHead(200, {
           'Content-Type': types[extname(file)] || 'application/octet-stream',
           'Cache-Control': 'no-store',
+          ...headers,
         });
         res.end(data);
       }

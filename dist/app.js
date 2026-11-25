@@ -45,7 +45,7 @@ const noFilters = () => ({ person: '', time: '', location: '', status: '' });
 const state = { me: null, email: '', events: [], photos: [] };
 let active = null,
   tab = 'mine',
-  sidebar = true,
+  sidebar = innerWidth > 800,
   largeGrid = false,
   query = '',
   filters = noFilters(),
@@ -120,6 +120,7 @@ async function refresh() {
   render();
 }
 async function openAlbum(id) {
+  if (innerWidth <= 800) sidebar = false;
   active = id;
   state.photos = [];
   query = '';
@@ -225,7 +226,7 @@ function sidebarView() {
 }
 function mainView(e) {
   if (!e)
-    return `<main class="main"><div class="content"><div class="empty">${state.me ? 'You have no albums yet.<br>Create an event, or join one with an invite code.' : 'Log in to see your albums.'}</div></div></main>`;
+    return `<main class="main"><div class="content"><div class="empty">${state.me ? 'You have no albums yet.<br>Open the side panel to create an event or join one with a code.' : 'Log in to see your albums.'}</div></div></main>`;
   const all = viewPhotos(),
     photos = photoSet(),
     people = new Map(
@@ -234,7 +235,7 @@ function mainView(e) {
         .sort((a, b) => a[1].localeCompare(b[1])),
     ),
     mine = tab === 'mine';
-  return `<main class="main"><header class="topbar"><div class="crumb">Your albums ${icon('chevron')} <strong>${esc(e.name)}</strong></div><div class="top-actions"><div class="searchbox">${icon('search')}<input id="photo-search" placeholder="Search your moments" value="${esc(query)}" aria-label="Search photos"></div><div class="transfer-anchor"><button id="transfer-trigger" class="transfer-trigger" data-action="transfers" aria-label="Transfer activity" title="Upload & delivery activity" aria-expanded="false" aria-controls="transfer-popover">${icon('transfer')}<span id="transfer-badge" class="transfer-badge" hidden></span></button><section id="transfer-popover" class="transfer-popover" role="region" aria-label="Transfer activity" hidden></section></div>${avatar()}</div></header><div class="content"><div class="album-heading"><div><div class="eyebrow">A SHARED ALBUM · ${e.date.slice(0, 4)}</div><h1>${esc(e.name)}</h1></div><div class="heading-actions"><button class="outline" data-action="invite">${icon('share')} Invite people</button><button class="primary" data-action="upload">${icon('plus')} Add photos</button></div></div><div class="meta"><div class="members"><span>${e.members === 1 ? 'Just you so far' : `You + ${count(e.members - 1, 'person')}`}</span></div><div class="meta-info"><span>${icon('pin')}${esc(e.location)}</span><span>${icon('image')}${count(all.length, 'photo')}</span><span>${icon('lock')}Invite only</span></div></div><div class="tabs"><button data-tab="mine" class="${mine ? 'active' : ''}">My uploads</button><button data-tab="ofme" class="${mine ? '' : 'active'}">Photos of me</button></div><div class="filters"><div class="filter-group">${mine ? select('person', 'People', [...people, ['unsolved', 'Unsolved']]) : ''}${select('time', 'Time', unique(all.map((p) => p.date)))}${select('location', 'Location', unique(all.map((p) => p.location)))}${mine ? select('status', 'Status', statusOptions) : ''}${Object.values(filters).some(Boolean) ? '<button data-action="clear" class="text-button" style="font-size:12px">Reset</button>' : ''}</div><div class="view-switch"><button class="${largeGrid ? '' : 'active'}" data-action="grid" title="Compact grid">${icon('grid')}</button><button class="${largeGrid ? 'active' : ''}" data-action="list" title="Large grid">${icon('list')}</button></div></div><div class="day">${longDate(e.date)}<span>${count(photos.length, 'moment')}</span></div><div class="grid ${largeGrid ? 'list-view' : ''}" id="photos">${photos.length ? photos.map(photoCard).join('') : `<div class="empty">${emptyText(all.length)}</div>`}</div><div class="footer-note">${icon('lock')}A little space for the moments that matter. <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></div></div></main>`;
+  return `<main class="main"><header class="topbar"><div class="crumb">Your albums ${icon('chevron')} <strong>${esc(e.name)}</strong></div><div class="top-actions"><div class="searchbox">${icon('search')}<input id="photo-search" placeholder="Search your moments" value="${esc(query)}" aria-label="Search photos"></div><div class="transfer-anchor"><button id="transfer-trigger" class="transfer-trigger" data-action="transfers" aria-label="Transfer activity" title="Upload & delivery activity" aria-expanded="false" aria-controls="transfer-popover">${icon('transfer')}<span id="transfer-badge" class="transfer-badge" hidden></span></button><section id="transfer-popover" class="transfer-popover" role="region" aria-label="Transfer activity" hidden></section></div>${avatar()}</div></header><div class="content"><div class="album-heading"><div><div class="eyebrow">A SHARED ALBUM · ${e.date.slice(0, 4)}</div><h1>${esc(e.name)}</h1></div><div class="heading-actions"><button class="outline" data-action="invite">${icon('share')} Invite people</button><button class="outline" data-action="manage">${icon('settings')} ${e.owner ? 'Manage' : 'Leave'}</button><button class="primary" data-action="upload">${icon('plus')} Add photos</button></div></div><div class="meta"><div class="members"><span>${e.members === 1 ? 'Just you so far' : `You + ${count(e.members - 1, 'person')}`}</span></div><div class="meta-info"><span>${icon('pin')}${esc(e.location)}</span><span>${icon('image')}${count(all.length, 'photo')}</span><span>${icon('lock')}Invite only</span></div></div><div class="tabs"><button data-tab="mine" class="${mine ? 'active' : ''}">My uploads</button><button data-tab="ofme" class="${mine ? '' : 'active'}">Photos of me</button></div><div class="filters"><div class="filter-group">${mine ? select('person', 'People', [...people, ['unsolved', 'Unsolved']]) : ''}${select('time', 'Time', unique(all.map((p) => p.date)))}${select('location', 'Location', unique(all.map((p) => p.location)))}${mine ? select('status', 'Status', statusOptions) : ''}${Object.values(filters).some(Boolean) ? '<button data-action="clear" class="text-button" style="font-size:12px">Reset</button>' : ''}</div><div class="view-switch"><button class="${largeGrid ? '' : 'active'}" data-action="grid" title="Compact grid">${icon('grid')}</button><button class="${largeGrid ? 'active' : ''}" data-action="list" title="Large grid">${icon('list')}</button></div></div><div class="day">${longDate(e.date)}<span>${count(photos.length, 'moment')}</span></div><div class="grid ${largeGrid ? 'list-view' : ''}" id="photos">${photos.length ? photos.map(photoCard).join('') : `<div class="empty">${emptyText(all.length)}</div>`}</div><div class="footer-note">${icon('lock')}A little space for the moments that matter. <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></div></div></main>`;
 }
 function emptyText(total) {
   if (total) return 'Nothing matches.<br>Adjust your filters or search.';
@@ -483,7 +484,7 @@ function accountSettings() {
     `<button class="account-row" data-settings-action="${action}"><span class="account-row-icon">${icon(glyph)}</span><span><strong>${title}</strong><small>${detail}</small></span>${icon('chevron')}</button>`;
   const { name, useFace, matchUploads, hasSelfies } = state.me;
   modal(
-    `<div class="account-profile"><img src="${badge(name)}" alt=""><div><h2>${esc(name)}</h2><p>${esc(state.email)}</p><button class="text-button" data-settings-action="profile">Edit profile</button></div></div><div class="account-card">${row('image', 'My selfies', hasSelfies ? 'Replace your face references' : useFace ? 'Not added yet' : 'Turn on face matching first', 'selfies')}</div><h3 class="account-section-title">Privacy & permissions</h3><div class="account-card"><label class="account-toggle"><span><strong>Use my face for matching</strong><small>Find me in events I join</small></span><input id="account-use-face" type="checkbox" ${useFace ? 'checked' : ''}><i></i></label><label class="account-toggle"><span><strong>Match people in my uploads</strong><small>Check for members who opted in</small></span><input id="account-match-uploads" type="checkbox" ${matchUploads ? 'checked' : ''}><i></i></label>${row('lock', 'Privacy policy', 'How your face data is used and deleted', 'privacy')}</div><h3 class="account-section-title">Account</h3><div class="account-card">${row('settings', 'Change password', 'Choose a new password', 'password')}</div><p class="account-note">Turning off face matching deletes your face signature right away. Photos already delivered to you stay.</p>`,
+    `<div class="account-profile"><img src="${badge(name)}" alt=""><div><h2>${esc(name)}</h2><p>${esc(state.email)}</p><button class="text-button" data-settings-action="profile">Edit profile</button></div></div><div class="account-card">${row('image', 'My selfies', hasSelfies ? 'Replace your face references' : useFace ? 'Not added yet' : 'Turn on face matching first', 'selfies')}</div><h3 class="account-section-title">Privacy & permissions</h3><div class="account-card"><label class="account-toggle"><span><strong>Use my face for matching</strong><small>Find me in events I join</small></span><input id="account-use-face" type="checkbox" ${useFace ? 'checked' : ''}><i></i></label><label class="account-toggle"><span><strong>Match people in my uploads</strong><small>Check for members who opted in</small></span><input id="account-match-uploads" type="checkbox" ${matchUploads ? 'checked' : ''}><i></i></label>${row('lock', 'Privacy policy', 'How your face data is used and deleted', 'privacy')}</div><h3 class="account-section-title">Account</h3><div class="account-card">${row('settings', 'Change password', 'Choose a new password', 'password')}${row('trash', 'Delete account', 'Erase your photos, face data and account', 'remove')}</div><p class="account-note">Turning off face matching deletes your face signature right away. Photos already delivered to you stay.</p>`,
     'account-dialog',
   );
   const save = async () => {
@@ -503,10 +504,21 @@ function accountSettings() {
     privacy: () => window.open('privacy.html', '_blank', 'noopener'),
     password: newPassword,
     profile: editProfile,
+    remove: deleteAccount,
   };
   document
     .querySelectorAll('[data-settings-action]')
     .forEach((button) => (button.onclick = () => open[button.dataset.settingsAction]()));
+}
+function deleteAccount() {
+  modal(
+    `<h2>Delete your account?</h2><p>This erases your photos (including for people they were delivered to), your face signature and your account. It cannot be undone. Albums you own pass to another member.</p><form id="delete-form"><label class="field">Type DELETE to confirm<input name="confirm" required pattern="DELETE" autocomplete="off"></label><p class="error" id="form-error" role="alert"></p><button class="primary">Delete my account</button></form>`,
+  );
+  onSubmit('#delete-form', async () => {
+    await api.deleteAccount();
+    if (state.me) leave();
+    toast('Your account is deleted');
+  });
 }
 function editProfile() {
   modal(
@@ -588,6 +600,75 @@ function qrPng(qr) {
     for (let col = 0; col < count; col++)
       if (qr.isDark(row, col)) ctx.fillRect((col + quiet) * cell, (row + quiet) * cell, cell, cell);
   return canvas.toDataURL('image/png');
+}
+async function manageAlbum() {
+  const e = currentEvent();
+  if (!e.owner) return leaveAlbum(e);
+  const members = await api.events.members(e.id);
+  modal(
+    `<h2>Manage album</h2><p>${esc(e.name)}</p><div class="account-card">${members.map((m) => `<div class="member-row"><span>${esc(m.name)}${m.me ? ' (you, owner)' : ''}</span>${m.me ? '' : `<button class="text-button" data-remove="${m.id}">Remove</button>`}</div>`).join('')}</div><button class="outline manage-action" id="reset-code">Change invite code</button><button class="outline manage-action" id="leave-album">Leave album</button>`,
+  );
+  document.querySelectorAll('[data-remove]').forEach(
+    (b) =>
+      (b.onclick = () => {
+        const member = members.find((m) => m.id === b.dataset.remove);
+        confirmStep(
+          `Remove ${esc(member.name)}?`,
+          'They lose access to this album and the photos delivered to them here. Their own uploads stay. The invite code changes too.',
+          'Remove',
+          async () => {
+            await api.events.removeMember(e.id, member.id);
+            await refresh();
+            await manageAlbum();
+            toast('Member removed and invite code changed');
+          },
+        );
+      }),
+  );
+  $('#reset-code').onclick = () =>
+    confirmStep(
+      'Change the invite code?',
+      'The old code and QR image stop working. Current members stay.',
+      'Change code',
+      async () => {
+        await api.events.resetCode(e.id);
+        await refresh();
+        invite();
+      },
+    );
+  $('#leave-album').onclick = () => leaveAlbum(e);
+}
+function leaveAlbum(e) {
+  const next =
+    e.members === 1
+      ? 'You are the only member, so the album is deleted.'
+      : e.owner
+        ? 'The album passes to another member.'
+        : '';
+  confirmStep(
+    'Leave this album?',
+    `Your uploads here are deleted for everyone, and you lose the photos delivered to you. ${next}`,
+    'Leave album',
+    async () => {
+      await api.events.leave(e.id);
+      active = null;
+      close();
+      await refresh();
+      toast('You left ' + e.name);
+    },
+  );
+}
+/** Title and text must already be escaped. */
+function confirmStep(title, body, label, action) {
+  modal(
+    `<h2>${title}</h2><p>${body}</p><button class="primary" id="confirm-yes">${label}</button><div class="alternate"><button class="text-button" id="confirm-no">Cancel</button></div>`,
+  );
+  $('#confirm-no').onclick = close;
+  $('#confirm-yes').onclick = async () => {
+    $('#confirm-yes').disabled = true;
+    await attempt(action);
+    if ($('#confirm-yes')) $('#confirm-yes').disabled = false;
+  };
 }
 function invite() {
   const e = currentEvent(),
@@ -700,6 +781,7 @@ const actions = {
       : welcome(),
   create: () => (state.me ? createEvent() : welcome()),
   invite,
+  manage: () => attempt(manageAlbum),
   qr: () => (state.me ? $('#qr').click() : welcome()),
   transfers: toggleTransfers,
   clear: resetFilters,

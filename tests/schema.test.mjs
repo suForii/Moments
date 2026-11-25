@@ -67,6 +67,7 @@ test('selfies need consent, and links are single use and expire', async () => {
   const send = (faces) => rpc(null, 'submit_enrollment', { p_token: token, p_faces: faces });
   await assert.rejects(send(selfies(1).slice(1)), /three/);
   await assert.rejects(send([[1], [1], [1]]), /Invalid face/);
+  await assert.rejects(send([face(1), face(1), face(900)]), /same person/);
   assert.equal(await rpc(null, 'enrollment_status', { p_token: token }), 'waiting');
   await send(selfies(1));
   assert.equal(await rpc(null, 'enrollment_status', { p_token: token }), 'completed');
@@ -147,4 +148,64 @@ test('people outside the album are never matched', async () => {
   const id = await addPhoto(ann, ev);
   await match(ann, id, [face(700)]);
   assert.equal((await album(ann, ev)).find((p) => p.id === id).status, 'no_match');
+});
+
+test('owner tools: members, code reset, removal', async () => {
+  for (const [fn, args] of [
+    ['album_members', { p_event: ev }],
+    ['reset_code', { p_event: ev }],
+    ['remove_member', { p_event: ev, p_user: eve }],
+  ])
+    await assert.rejects(rpc(bob, fn, args), /Only the album owner/);
+  assert.equal((await rpc(ann, 'album_members', { p_event: ev })).length, 3);
+  const fresh = await rpc(ann, 'reset_code', { p_event: ev });
+  assert.equal(await rpc(eve, 'preview_event', { p_code: code }), null);
+  assert.ok((await album(eve, ev)).length > 0);
+  await assert.rejects(rpc(ann, 'remove_member', { p_event: ev, p_user: ann }), /Leave the album/);
+  await rpc(ann, 'remove_member', { p_event: ev, p_user: eve });
+  await assert.rejects(album(eve, ev), /not a member/);
+  await assert.rejects(rpc(eve, 'join_event', { p_code: fresh }), /No album/);
+  const kept = await db.query('select 1 from public.deliveries where user_id = $1', [eve]);
+  assert.equal(kept.rows.length, 0);
+});
+
+test('leaving hands the album over; the last person out deletes it', async () => {
+  const u1 = await addUser('u1@test', 'One'),
+    u2 = await addUser('u2@test', 'Two');
+  const id = await rpc(u1, 'create_event', {
+    p_name: 'Trip',
+    p_date: '2026-11-25',
+    p_location: 'X',
+  });
+  await rpc(u2, 'join_event', { p_code: (await rpc(u1, 'my_events'))[0].code });
+  await addPhoto(u1, id);
+  const theirs = await addPhoto(u2, id);
+  await rpc(u1, 'leave_event', { p_event: id });
+  assert.deepEqual(await rpc(u1, 'my_events'), []);
+  assert.equal((await rpc(u2, 'my_events'))[0].owner, true);
+  const { rows } = await db.query('select id from public.photos where event_id = $1', [id]);
+  assert.deepEqual(rows, [{ id: theirs }]);
+  await rpc(u2, 'leave_event', { p_event: id });
+  assert.equal((await db.query('select 1 from public.events where id = $1', [id])).rows.length, 0);
+});
+
+test('deleting an account erases everything and keeps the album for others', async () => {
+  const files = await rpc(ann, 'my_files');
+  assert.equal(files.length, 1);
+  assert.deepEqual(await rpc(bob, 'my_files'), []);
+  await assert.rejects(rpc(null, 'delete_account'), /permission denied/);
+  await privacy(ann, true, true);
+  await enroll(ann, 3);
+  await rpc(ann, 'delete_account');
+  for (const t of ['profiles', 'consent_log', 'event_members', 'face_signatures', 'enrollments'])
+    assert.equal(
+      (await db.query(`select 1 from public.${t} where user_id = $1`, [ann])).rows.length,
+      0,
+      t,
+    );
+  assert.equal(
+    (await db.query('select 1 from public.photos where owner_id = $1', [ann])).rows.length,
+    0,
+  );
+  assert.equal((await rpc(bob, 'my_events'))[0].owner, true);
 });

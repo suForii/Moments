@@ -1,5 +1,6 @@
 import { api } from './services.js';
 import { findFaces } from './faces.js';
+import { angleProblem } from './angles.js';
 
 const $ = (selector) => document.querySelector(selector),
   token = location.hash.slice(1),
@@ -96,7 +97,8 @@ $('#complete').onclick = async () => {
   $('#complete').textContent = 'Checking your selfies…';
   message('');
   try {
-    const faces = [];
+    const faces = [],
+      yaws = [];
     for (const [index, blob] of (await blobs()).entries()) {
       const found = await findFaces(blob, { tiles: false });
       if (found.length !== 1) {
@@ -108,6 +110,12 @@ $('#complete').onclick = async () => {
         );
       }
       faces.push(found[0].embedding);
+      yaws.push(found[0].yaw);
+    }
+    const problem = angleProblem(yaws);
+    if (problem) {
+      photos.splice(problem[0]);
+      throw new Error(problem[1]);
     }
     await api.enrollment.submit(token, faces);
     $('#done').hidden = false;

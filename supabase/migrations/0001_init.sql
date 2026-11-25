@@ -87,7 +87,10 @@ create index on public.enrollments (user_id);
 
 -- Maximum L2 distance that counts as the same person. Tune with real test photos.
 create table private.settings (key text primary key, value double precision not null);
-insert into private.settings values ('match_distance', 8);
+insert into private.settings values
+  ('match_distance', 8),
+  -- How far a turned selfie may be from the front one before it looks like someone else.
+  ('selfie_distance', 13);
 
 alter table public.profiles enable row level security;
 alter table public.consent_log enable row level security;
@@ -203,7 +206,7 @@ declare me uuid := private.uid(); new_id uuid;
 begin
   insert into public.events (owner_id, name, date, location, code) values (
     me, trim(p_name), p_date, trim(p_location),
-    upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 10)))
+    private.new_code())
   returning id into new_id;
   insert into public.event_members (event_id, user_id) values (new_id, me);
   return new_id;
@@ -240,12 +243,109 @@ declare me uuid := private.uid();
 begin
   return coalesce((select jsonb_agg(jsonb_build_object(
     'id', e.id, 'name', e.name, 'date', e.date, 'location', e.location, 'code', e.code,
+    'owner', e.owner_id = me,
     'members', (select count(*) from public.event_members x where x.event_id = e.id),
     'photos', (select count(*) from public.photos p where p.event_id = e.id and (p.owner_id = me
       or exists (select 1 from public.deliveries d where d.photo_id = p.id and d.user_id = me)))
   ) order by e.date desc, e.created_at desc)
   from public.events e join public.event_members m on m.event_id = e.id and m.user_id = me),
   '[]');
+end $$;
+
+create function private.require_owner(p_event uuid) returns uuid
+language plpgsql stable security definer set search_path = '' as $$
+declare me uuid := private.uid();
+begin
+  if not exists (select 1 from public.events where id = p_event and owner_id = me) then
+    raise exception 'Only the album owner can do that.' using errcode = '42501';
+  end if;
+  return me;
+end $$;
+
+create function private.new_code() returns text language sql volatile set search_path = '' as $$
+  select upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 10));
+$$;
+
+-- Removes someone from an album. A departing owner hands it to the longest-standing member;
+-- an album nobody is left in is deleted.
+create function private.drop_member(p_event uuid, p_user uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+declare heir uuid;
+begin
+  perform 1 from public.events where id = p_event for update;
+  delete from public.deliveries d using public.photos p
+    where p.id = d.photo_id and p.event_id = p_event and d.user_id = p_user;
+  delete from public.event_members where event_id = p_event and user_id = p_user;
+  if exists (select 1 from public.events where id = p_event and owner_id = p_user) then
+    select user_id into heir from public.event_members
+      where event_id = p_event order by joined_at, user_id limit 1;
+    if heir is null then
+      delete from public.events where id = p_event;
+    else
+      update public.events set owner_id = heir where id = p_event;
+    end if;
+  end if;
+end $$;
+
+create function public.album_members(p_event uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare me uuid := private.require_owner(p_event);
+begin
+  return (select jsonb_agg(jsonb_build_object('id', m.user_id, 'name', p.name,
+    'me', m.user_id = me) order by m.joined_at)
+  from public.event_members m join public.profiles p on p.user_id = m.user_id
+  where m.event_id = p_event);
+end $$;
+
+create function public.reset_code(p_event uuid) returns text
+language plpgsql security definer set search_path = '' as $$
+declare fresh text := private.new_code();
+begin
+  perform private.require_owner(p_event);
+  update public.events set code = fresh where id = p_event;
+  return fresh;
+end $$;
+
+-- Also changes the code, so the old invite cannot be used to come back.
+-- Their uploads stay theirs and stay delivered.
+create function public.remove_member(p_event uuid, p_user uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+declare me uuid := private.require_owner(p_event);
+begin
+  if p_user = me then
+    raise exception 'Leave the album instead.' using errcode = '22023';
+  end if;
+  perform private.drop_member(p_event, p_user);
+  update public.events set code = private.new_code() where id = p_event;
+end $$;
+
+create function public.leave_event(p_event uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+declare me uuid := private.require_member(p_event);
+begin
+  delete from public.photos where event_id = p_event and owner_id = me;
+  perform private.drop_member(p_event, me);
+end $$;
+
+-- My stored files, so the client can delete them before leaving or closing the account.
+create function public.my_files(p_event uuid default null) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare me uuid := private.uid();
+begin
+  return coalesce((select jsonb_agg(o.name) from storage.objects o
+    where o.bucket_id = 'photos' and split_part(o.name, '/', 2) = me::text
+      and (p_event is null or split_part(o.name, '/', 1) = p_event::text)), '[]');
+end $$;
+
+create function public.delete_account() returns void
+language plpgsql security definer set search_path = '' as $$
+declare me uuid := private.uid(); ev uuid;
+begin
+  delete from public.photos where owner_id = me;
+  for ev in select event_id from public.event_members where user_id = me loop
+    perform private.drop_member(ev, me);
+  end loop;
+  delete from auth.users where id = me;
 end $$;
 
 -- ---------- Photos ----------
@@ -329,6 +429,15 @@ begin
   delete from public.face_signatures where user_id = target;
   insert into public.face_signatures (user_id, angle, embedding)
     select target, n, v from private.parse_faces(p_faces, 3) with ordinality as f (v, n);
+  if exists (
+    select 1 from public.face_signatures a
+    join public.face_signatures b on b.user_id = a.user_id and b.angle > 1
+    where a.user_id = target and a.angle = 1 and a.embedding operator(extensions.<->) b.embedding
+      > (select value from private.settings where key = 'selfie_distance')
+  ) then
+    raise exception 'The selfies do not look like the same person. Please take them again.'
+      using errcode = '22023';
+  end if;
   perform private.mark_rescan(target);
 end $$;
 
@@ -424,7 +533,8 @@ begin
     where p.pronamespace = 'public'::regnamespace and p.proname in (
       'get_me', 'set_name', 'set_privacy', 'create_event', 'preview_event', 'join_event',
       'my_events', 'add_photo', 'album_photos', 'delete_photo', 'create_enrollment',
-      'photos_to_scan', 'match_faces', 'enrollment_status', 'submit_enrollment')
+      'photos_to_scan', 'match_faces',
+      'album_members', 'reset_code', 'remove_member', 'leave_event', 'my_files', 'delete_account', 'enrollment_status', 'submit_enrollment')
   loop execute format('grant execute on function %s to authenticated', f); end loop;
 end $$;
 grant execute on function public.enrollment_status(text) to anon;

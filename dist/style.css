@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Manrope:wght@400;500;600;650;700;750;800&display=swap');
+@import url('fonts.css');
 :root {
   font-family: 'DM Sans', sans-serif;
   color: #292b32;
@@ -1585,4 +1585,41 @@ p {
 .selfie-current small {
   font-size: 12px;
   color: #74857c;
+}
+
+.member-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+}
+.manage-action {
+  width: 100%;
+  margin-top: 12px;
+}
+
+@media (max-width: 800px) {
+  .album-heading {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .album-heading > div:first-child {
+    flex-basis: 100%;
+  }
+  .heading-actions {
+    width: 100%;
+  }
+  .heading-actions button {
+    white-space: nowrap;
+  }
+  .filters {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .filter-group {
+    flex-wrap: wrap;
+  }
+  .footer-note {
+    flex-wrap: wrap;
+  }
 }

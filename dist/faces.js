@@ -77,7 +77,14 @@ async function scan(blob, tiles) {
     for (const face of result.face) {
       const [bx, by, bw, bh] = face.box;
       if (face.embedding?.length !== 1024 || face.score < 0.5 || Math.min(bw, bh) < 32) continue;
-      const item = { x: x + bx, y: y + by, w: bw, h: bh, score: face.score };
+      const item = {
+        x: x + bx,
+        y: y + by,
+        w: bw,
+        h: bh,
+        score: face.score,
+        yaw: face.rotation?.angle?.yaw ?? 0,
+      };
       if (found.some((other) => overlaps(item, other))) continue;
       found.push({ ...item, embedding: face.embedding.map((n) => Math.round(n * 1e4) / 1e4) });
     }

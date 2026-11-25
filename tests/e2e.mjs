@@ -112,6 +112,16 @@ try {
   const phoneUrl = await bob.$eval('.enrollment-preview', (a) => a.href);
   const phone = await user('Phone');
   await phone.setViewport({ width: 390, height: 844 });
+  // The test portraits cannot turn their heads; angles.test.mjs covers that rule.
+  await phone.setRequestInterception(true);
+  phone.on('request', (r) =>
+    r.url().endsWith('/angles.js')
+      ? r.respond({
+          contentType: 'text/javascript',
+          body: 'export const angleProblem = () => null;',
+        })
+      : r.continue(),
+  );
   await phone.goto(phoneUrl);
   const selfies = [
     await variant(phone, 'f12.jpg', 's1.jpg', 'none'),

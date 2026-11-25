@@ -20,12 +20,14 @@ export async function preparePhoto(file, event) {
   try {
     bitmap = await createImageBitmap(file);
   } catch {
-    throw new Error('This browser cannot open that image. Try a JPEG or PNG.');
+    throw Object.assign(new Error('This browser cannot open that image. Try a JPEG or PNG.'), {
+      permanent: true,
+    });
   }
   const [full, thumb, info, gps] = await Promise.all([
     shrink(bitmap, 2048, 0.82),
     shrink(bitmap, 640, 0.75),
-    exifr.parse(file, ['DateTimeOriginal']).catch(() => null),
+    exifr.parse(file).catch(() => null),
     exifr.gps(file).catch(() => null),
   ]);
   bitmap.close();

@@ -41,6 +41,13 @@ function putFile(path, blob, token, onProgress) {
   });
 }
 
+/** Deletes my stored files, in one album or everywhere. */
+async function removeFiles(eventId) {
+  const files = await rpc('my_files', { p_event: eventId });
+  for (let i = 0; i < files.length; i += 100)
+    await unwrap(bucket().remove(files.slice(i, i + 100)));
+}
+
 export const api = {
   auth: {
     onChange: (callback) => client?.auth.onAuthStateChange(callback),
@@ -62,6 +69,13 @@ export const api = {
     setPassword: (password) => unwrap(client?.auth.updateUser({ password })),
   },
   me: () => rpc('get_me'),
+  async deleteAccount() {
+    await removeFiles(null);
+    await rpc('delete_account');
+    signed.clear();
+    // The account is gone, so only the local session is left to clear.
+    await client.auth.signOut({ scope: 'local' }).catch(() => {});
+  },
   setName: (name) => rpc('set_name', { p_name: name }),
   setPrivacy: ({ useFace, matchUploads, version }) =>
     rpc('set_privacy', {
@@ -75,6 +89,13 @@ export const api = {
       rpc('create_event', { p_name: name, p_date: date, p_location: location }),
     preview: (code) => rpc('preview_event', { p_code: code }),
     join: (code) => rpc('join_event', { p_code: code }),
+    members: (id) => rpc('album_members', { p_event: id }),
+    resetCode: (id) => rpc('reset_code', { p_event: id }),
+    removeMember: (id, userId) => rpc('remove_member', { p_event: id, p_user: userId }),
+    async leave(id) {
+      await removeFiles(id);
+      await rpc('leave_event', { p_event: id });
+    },
   },
   photos: {
     async list(eventId) {

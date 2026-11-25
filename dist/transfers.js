@@ -148,6 +148,7 @@ async function send(item) {
     item.upload = 'failed';
     item.progress = 0;
     item.error = error.message || 'Upload failed';
+    if (error.permanent) delete item.file;
     context.render();
   }
 }

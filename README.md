@@ -4,7 +4,20 @@
 
 Moments is a website to help people collect, organize and deliver photos in a more aumotamic way. 
 
-The v1 release is an interactive frontend prototype for desktop and laptop screens, primarily 1024–1920px wide. This release has no backend, real authentication, cloud storage, or face recognition.
+The MVP has real accounts, shared albums, private photo storage and face matching, using Supabase and the browser. See [SETUP.md](SETUP.md) to run it. Where the sections below differ from this one, this one is current.
+
+### What changed from the v1 prototype
+
+- Privacy choices come before selfies, so no face signature is stored without consent.
+- Faces are found on the user's own device. Only signatures are sent; selfies are never uploaded, and signatures from album photos are discarded after matching.
+- Photo statuses are Uploading, Uploaded, Processing, Matched & delivered, and No matches.
+- Albums are joined with an exact code, link or QR image, not by name.
+- Owners can remove members and change the invite code. Anyone can leave an album or delete their account.
+- Share links last 7 days and cannot be revoked. Moments friends was removed.
+- Photos up to 30 MB are accepted, shrunk to 2048px, and stripped of metadata. Locations are rounded to about 1 km.
+- Known risk: a user could submit fake face data. Use only for closed tests until matching moves to a server.
+
+Screenshots below are from the v1 prototype.
 
 ## 2. Function 1 — Account Setup and Privacy Onboarding
 
@@ -164,79 +177,20 @@ Moments friends use a distinct product color because they refer to relationships
 
 ## 5. Canonical Technology Stack
 
-This section is the single source of truth for the website's technology choices. Update it whenever the stack changes.
+| Layer | Technology |
+| --- | --- |
+| Website | HTML, CSS and native JavaScript modules in `dist/`, no build step |
+| Accounts, database, photo storage | Supabase (Postgres + pgvector) |
+| Face detection and signatures | `@vladmandic/human` in the browser (MIT) |
+| Photo date and location | `exifr` in the browser (MIT) |
+| QR codes | Bundled QR Code Generator (MIT); browser BarcodeDetector for reading |
+| Fonts | DM Sans and Manrope, self-hosted (OFL) |
+| Hosting | Static; Cloudflare Pages planned (`dist/_headers` sets security headers) |
 
-| Layer | v1 Technology | Purpose |
-| --- | --- | --- |
-| Markup | HTML5 | Semantic structure, forms, file inputs |
-| Styling | CSS3 | Responsive grid/flex layouts, blurred overlays, hover states |
-| Application logic | Native JavaScript ES Modules | State, interactions, service boundary |
-| Local persistence | Web Storage / localStorage | Demo session, events, consent, photo data |
-| Local images | FileReader / Data URLs | Uploaded-image previews and local persistence |
-| QR generation | Bundled QR Code Generator (MIT), Kazuhiko Arase | Locally generate downloadable invitation QR PNGs |
-| QR decoding | Browser BarcodeDetector API | QR decoding where available; invitation-code fallback elsewhere |
-| Icons | Inline SVG | Icons without a library dependency |
-| Typography | Google Fonts: DM Sans and Manrope | Interface fonts with system sans-serif fallback |
-| Sample photos | Unsplash image URLs | Demo imagery only |
-| Sample avatars | pravatar.cc | Demo member avatars |
-| Hosting | Sites static hosting | Serve `dist` without a build step |
+## 6. Backend
 
-The project uses no React, Next.js, database, authentication SDK, or additional UI framework. Deployment metadata lives in `.openai/hosting.json`.
+The whole backend is `supabase/migrations/0001_init.sql`. Clients cannot read tables directly; every call is a checked SQL function, and `dist/services.js` is the only file that calls them. Photo files are private and readable only by the uploader and the people they were delivered to.
 
-## 6. Reserved Backend API Contract
+## 7. Testing
 
-These endpoints describe future integration requirements; they are not implemented. Use the `/api/v1` prefix and JSON requests/responses. File uploads should use signed URLs.
-
-`dist/services.js` is the designated service boundary and currently returns mock responses. Production integration must replace these methods, remove the fake session, and connect the UI's local array operations to service responses. Local storage must never determine production permissions.
-
-| Method | Endpoint | Request | Response |
-| --- | --- | --- | --- |
-| POST | /auth/signup | name, email, password | user; HttpOnly session cookie |
-| POST | /auth/login | email, password | user; HttpOnly session cookie |
-| POST | /auth/logout | None | 204; revoke session |
-| GET | /me | None | user, onboardingCompleted |
-| GET / PATCH | /me/privacy | useFace, matchUploads, consentVersion | choices, updatedAt |
-| POST | /me/selfies/upload-url | filename, contentType, size | uploadUrl, assetId, expiresAt |
-| POST | /me/selfies | assetIds; maximum five | selfieIds |
-| DELETE | /me/face-signature | None | 204; delete biometric signature and stop subsequent matching |
-| GET / POST | /events | name, date, location for creation | Event[] / Event |
-| GET | /events/search?q= | name or inviteCode | Limited metadata for joinable events |
-| POST | /events/join | inviteCode | Event, membership |
-| POST | /events/:id/invites | expiresAt | inviteCode, inviteUrl, qrPayload |
-| GET | /events/:id/photos | people, time, location, status, photosOfMe, cursor | photos, nextCursor |
-| POST | /events/:id/photos/upload-url | filename, contentType, size | uploadUrl, assetId |
-| POST | /events/:id/photos | assetId, metadata | Photo with pending status |
-| DELETE | /photos/:id | None | 204; validate deletion permissions on the server |
-| PUT / DELETE | /photos/:id/saved | None | saved |
-| POST | /photos/:id/share | expiresAt | Expiring, revocable shareUrl |
-| POST | /matching/jobs | photoIds | jobId, pending; validate applicable consent on the server |
-| GET | /matching/jobs/:id | None | pending / complete / failed |
-
-### Data Models
-
-- **Event:** id, name, date, location, cover, members, code, joined.
-- **Photo:** id, eventId, url, name, person, status, date, location, type, owner, saved, workflowVersion, uploadState, shareState, deliveryState, containsMe, deliveredToMe.
-- **Privacy:** useFace, matchUploads, updatedAt. Production must also record consentVersion.
-
-### Error and Authorization Requirements
-
-Use `{ error: { code, message, field? } }` as the production error envelope. Handle 401 with reauthentication, 403 with an access-denied message, 413 with a file-size message, 422 with validation feedback, and 429 with retry guidance.
-
-The server must validate event membership, applicable consent, and resource ownership. Production biometric processing requires its own storage, retention, and deletion policies. Raw facial features must not be stored in localStorage.
-
-## 7. Deployed Website and Verification
-
-The v1 prototype is deployed on Sites:
-
-[Open Moments](https://moments-desktop-studio.whalefall213.chatgpt.site)
-
-Use the acceptance criteria in Tasks 1 and 2 to verify the deployed experience. Include a page refresh to verify that demo state persists in the same browser.
-
-## 8. v1 Constraints
-
-- Data belongs to the local browser, not a verified account. This release does not provide cross-user collaboration or real authentication.
-- localStorage has a limited capacity, commonly a few megabytes. Large photos may exhaust it; the app reports this and keeps the current in-memory preview. Clearing site data resets the demo.
-- Sample photos, avatars, and fonts require external network access. Production should use owned assets and controlled storage.
-- QR decoding depends on browser support. A valid local invitation result must be selected before joining.
-- Photo sharing copies a sample image URL without access control or revocation. Production must use the authorized sharing endpoint.
-- Time, location, type, and recognized-person values are demo metadata. Uploaded photos are not analyzed in v1.
+`npm test` covers the access rules. `tests/e2e.mjs` drives the full app in Chrome.
