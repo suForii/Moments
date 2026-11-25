@@ -1,62 +1,59 @@
-/** Non-modal transfer popover. Local reads are real; delivery requires a backend. */
+/** Non-modal popover showing uploads and deliveries for the open album. */
+import { preparePhoto } from './images.js';
+
+const MAX_SIZE = 30 * 1024 * 1024;
 let context,
   opened = false,
-  mode = 'uploads';
-const files = new Map();
-const escape = (value) =>
-  String(value).replace(
-    /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
-  );
+  mode = 'uploads',
+  transfers = [];
 export function configureTransfers(config) {
   context = config;
 }
+export function clearTransfers() {
+  transfers = [];
+  opened = false;
+}
+/** Uploads still on their way into an album. */
+export const activeTransfers = (eventId) =>
+  transfers.filter((t) => t.event.id === eventId && ['queued', 'uploading'].includes(t.upload));
 const glyph = (name) => context.icon(name);
+const escape = (value) => context.esc(value);
 function entries() {
-  const state = context.getState();
-  return state.photos
-    .filter((p) => p.eventId === context.getActive())
+  const id = context.getEvent()?.id;
+  const waiting = transfers.filter((t) => t.event.id === id);
+  const stored = context
+    .getState()
+    .photos.filter((p) => p.mine)
     .map((p) => ({
       id: p.id,
       name: p.name,
-      url: p.url,
+      url: p.thumb,
       upload: 'complete',
       progress: 100,
-      delivery:
-        p.deliveryState === 'completed'
-          ? 'demo-delivered'
-          : p.deliveryState === 'awaiting'
-            ? 'demo-waiting'
-            : 'unavailable',
-      ...(state.transfers || []).find((t) => t.id === p.id),
-    }))
-    .concat(
-      (state.transfers || []).filter(
-        (t) => t.eventId === context.getActive() && !state.photos.some((p) => p.id === t.id),
-      ),
-    );
+      photo: p,
+    }));
+  return [...waiting.filter((t) => !stored.some((p) => p.id === t.id)), ...stored];
 }
+const delivered = (item) => item.photo?.status === 'delivered';
 function row(item) {
   const uploading = mode === 'uploads';
   const failed = item.upload === 'failed';
   const labels = {
     queued: 'Waiting',
-    reading: 'Reading photo…',
-    complete: 'Available in this browser',
-    failed: item.error || 'Could not read photo',
+    uploading: 'Uploading…',
+    complete: 'Upload completed',
+    failed: item.error || 'Upload failed',
   };
-  const deliveryLabels = {
-    'demo-delivered': 'Delivered · sample status',
-    'demo-waiting': 'Awaiting matching · sample status',
-    unavailable: 'Not delivered · backend unavailable',
-  };
+  const people = item.photo?.people.map((p) => p.name).join(', ');
   const status = uploading
     ? labels[item.upload]
-    : item.upload === 'complete'
-      ? deliveryLabels[item.delivery]
+    : item.photo
+      ? people
+        ? `Delivered to ${people}`
+        : context.statusLabel(item.photo)
       : 'Waiting for upload';
-  const done = uploading ? item.upload === 'complete' : item.delivery === 'demo-delivered';
-  return `<article class="transfer-row"><div class="transfer-thumbnail">${item.url ? `<img src="${escape(item.url)}" alt="">` : glyph('image')}</div><div class="transfer-details"><strong title="${escape(item.name)}">${escape(item.name)}</strong><div class="transfer-status ${failed && uploading ? 'failed' : done ? 'complete' : ''}">${glyph(failed && uploading ? 'close' : done ? 'check' : 'clock')}<span>${escape(status)}</span>${uploading && item.upload === 'reading' ? `<span class="transfer-percent">${Math.round(item.progress)}%</span>` : ''}${uploading && failed && files.has(item.id) ? `<button class="text-button" data-retry="${item.id}">Retry</button>` : ''}</div>${uploading ? `<div class="transfer-track" role="progressbar" aria-label="${escape(item.name)} local read progress" aria-valuenow="${item.progress}" aria-valuemin="0" aria-valuemax="100"><span class="${done ? 'complete' : ''}" style="width:${item.progress}%"></span></div>` : ''}</div></article>`;
+  const done = uploading ? item.upload === 'complete' : delivered(item);
+  return `<article class="transfer-row"><div class="transfer-thumbnail">${item.url ? `<img src="${escape(item.url)}" alt="">` : glyph('image')}</div><div class="transfer-details"><strong title="${escape(item.name)}">${escape(item.name)}</strong><div class="transfer-status ${failed && uploading ? 'failed' : done ? 'complete' : ''}">${glyph(failed && uploading ? 'close' : done ? 'check' : 'clock')}<span>${escape(status)}</span>${uploading && item.upload === 'uploading' ? `<span class="transfer-percent">${Math.round(item.progress)}%</span>` : ''}${uploading && failed && item.file ? `<button class="text-button" data-retry="${item.id}">Retry</button>` : ''}</div>${uploading ? `<div class="transfer-track" role="progressbar" aria-label="${escape(item.name)} upload progress" aria-valuenow="${Math.round(item.progress)}" aria-valuemin="0" aria-valuemax="100"><span class="${done ? 'complete' : ''}" style="width:${item.progress}%"></span></div>` : ''}</div></article>`;
 }
 export function mountTransfers() {
   const host = document.querySelector('#transfer-popover');
@@ -66,31 +63,26 @@ export function mountTransfers() {
   trigger.classList.toggle('active', opened);
   host.hidden = !opened;
   const items = entries(),
-    pending = items.filter((t) => ['queued', 'reading'].includes(t.upload)).length;
+    pending = items.filter((t) => ['queued', 'uploading'].includes(t.upload)).length;
   const badge = document.querySelector('#transfer-badge');
   if (badge) {
     badge.hidden = !pending;
     badge.textContent = pending;
   }
   if (!opened) return;
-  const event = context.getState().events.find((e) => e.id === context.getActive());
+  const event = context.getEvent();
+  if (!event) return;
   const groups =
     mode === 'uploads'
       ? [
-          ['In progress', items.filter((t) => t.upload === 'reading')],
+          ['In progress', items.filter((t) => t.upload === 'uploading')],
           ['Waiting', items.filter((t) => t.upload === 'queued')],
           ['Completed', items.filter((t) => t.upload === 'complete')],
           ['Failed', items.filter((t) => t.upload === 'failed')],
         ]
       : [
-          [
-            'Delivered',
-            items.filter((t) => t.upload === 'complete' && t.delivery === 'demo-delivered'),
-          ],
-          [
-            'Waiting for delivery',
-            items.filter((t) => t.delivery !== 'demo-delivered' || t.upload !== 'complete'),
-          ],
+          ['Delivered', items.filter(delivered)],
+          ['Not delivered', items.filter((t) => !delivered(t))],
         ];
   host.innerHTML = `<header class="transfer-heading"><div><h2>Transfer activity</h2></div><button id="transfer-close" aria-label="Close transfer activity">${glyph('close')}</button></header><div class="transfer-event">${glyph('image')}<div><strong>${escape(event.name)}</strong><span>${items.length} photos · current album</span></div></div><div class="transfer-tabs" role="group" aria-label="Transfer stage"><button data-transfer-tab="uploads" class="${mode === 'uploads' ? 'active' : ''}" aria-pressed="${mode === 'uploads'}">Uploads <span>${items.length}</span></button><button data-transfer-tab="delivery" class="${mode === 'delivery' ? 'active' : ''}" aria-pressed="${mode === 'delivery'}">Delivery</button></div><div class="transfer-list">${
     items.length
@@ -102,7 +94,7 @@ export function mountTransfers() {
           )
           .join('')
       : `<div class="transfer-empty">${glyph('upload')}<strong>No transfers yet</strong><p>Add photos to this album to see their progress here.</p></div>`
-  }</div><footer class="transfer-footer">${glyph('lock')}<span>V1 demo · uploads stay in this browser.<br>Delivery needs a backend; sample statuses are labeled.</span></footer>`;
+  }</div><footer class="transfer-footer">${glyph('lock')}<span>Photos go only to the people found in them.</span></footer>`;
   host.querySelector('#transfer-close').onclick = () => setOpen(false, true);
   host.querySelectorAll('[data-transfer-tab]').forEach(
     (b) =>
@@ -112,9 +104,7 @@ export function mountTransfers() {
         host.querySelector(`[data-transfer-tab="${mode}"]`).focus();
       }),
   );
-  host
-    .querySelectorAll('[data-retry]')
-    .forEach((b) => (b.onclick = () => readFile(b.dataset.retry)));
+  host.querySelectorAll('[data-retry]').forEach((b) => (b.onclick = () => retry(b.dataset.retry)));
 }
 function setOpen(value, focus = false) {
   opened = value;
@@ -134,118 +124,57 @@ document.addEventListener('keydown', (event) => {
     setOpen(false, true);
   }
 });
-function persist() {
-  try {
-    context.persist();
-  } catch {
-    context.toast('Device storage is full. Transfers remain for this session.');
-  }
-}
-async function readFile(id) {
-  const state = context.getState(),
-    item = state.transfers.find((t) => t.id === id),
-    file = files.get(id);
-  if (!file || !item) return;
-  item.upload = 'reading';
+async function send(item) {
+  item.upload = 'uploading';
   item.progress = 0;
   delete item.error;
-  mountTransfers();
+  context.render();
   try {
-    const metadata = await context.prepare({
-      filename: file.name,
-      contentType: file.type,
-      size: file.size,
-    });
-    if (metadata.mode !== 'local') throw new Error('Unsupported upload mode');
-    const url = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onprogress = (e) => {
-        if (e.lengthComputable) {
-          item.progress = Math.round((e.loaded / e.total) * 100);
-          mountTransfers();
-        }
-      };
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error('Could not read photo'));
-      reader.onabort = () => reject(new Error('Photo read canceled'));
-      reader.readAsDataURL(file);
-    });
-    state.photos.unshift({
-      id,
-      eventId: item.eventId,
-      url,
-      name: file.name,
-      person: 'unsolved',
-      status: 'pending',
-      date: item.date,
-      location: item.location,
-      type: 'portrait',
-      saved: false,
-      owner: 'me',
-      workflowVersion: 1,
-      uploadState: 'completed',
-      shareState: 'awaiting',
-      deliveryState: 'unavailable',
-      containsMe: false,
-      deliveredToMe: false,
-    });
+    const photo = await preparePhoto(item.file, item.event);
+    await context.upload(
+      { ...photo, id: item.id, eventId: item.event.id, name: item.name },
+      (progress) => {
+        item.progress = progress;
+        mountTransfers();
+      },
+    );
     item.upload = 'complete';
     item.progress = 100;
-    item.delivery = 'unavailable';
-    files.delete(id);
-    persist();
+    delete item.file;
+    await context.refresh().catch(() => {});
+    transfers = transfers.filter((t) => t !== item);
     context.render();
   } catch (error) {
     item.upload = 'failed';
     item.progress = 0;
-    item.error = error.message || 'Could not read photo';
-    persist();
-    mountTransfers();
+    item.error = error.message || 'Upload failed';
+    context.render();
   }
 }
-export async function queueTransfers(selected) {
-  const state = context.getState(),
-    event = state.events.find((e) => e.id === context.getActive());
-  state.transfers ??= [];
+async function retry(id) {
+  const item = transfers.find((t) => t.id === id && t.upload === 'failed');
+  if (item?.file) await send(item);
+}
+export async function queueTransfers(selected, event) {
   const queued = [];
   for (const file of selected) {
-    if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) {
-      state.transfers.unshift({
-        id: crypto.randomUUID(),
-        eventId: event.id,
-        name: file.name,
-        upload: 'failed',
-        progress: 0,
-        delivery: 'unavailable',
-        error: 'Choose an image smaller than 5 MB',
-      });
-      continue;
-    }
-    const id = crypto.randomUUID();
-    files.set(id, file);
-    state.transfers.unshift({
-      id,
-      eventId: event.id,
+    const ok = file.type.startsWith('image/') && file.size <= MAX_SIZE;
+    const item = {
+      id: crypto.randomUUID(),
+      event,
       name: file.name,
-      upload: 'queued',
+      upload: ok ? 'queued' : 'failed',
       progress: 0,
-      delivery: 'unavailable',
-      date: event.date,
-      location: event.location,
-    });
-    queued.push(id);
+      ...(ok ? { file } : { error: 'Choose an image smaller than 30 MB' }),
+    };
+    transfers.unshift(item);
+    if (ok) queued.push(item);
   }
-  persist();
   mode = 'uploads';
   setOpen(true);
-  for (const id of queued) await readFile(id);
-  mountTransfers();
+  for (const item of queued) if (transfers.includes(item)) await send(item);
 }
-export function recoverTransfers(state) {
-  for (const item of state.transfers || [])
-    if (['queued', 'reading'].includes(item.upload)) {
-      item.upload = 'failed';
-      item.progress = 0;
-      item.error = 'Interrupted · select the photo again';
-    }
-}
+// Leaving the page would cancel uploads in progress.
+window.addEventListener('beforeunload', (e) => {
+  if (transfers.some((t) => ['queued', 'uploading'].includes(t.upload))) e.preventDefault();
+});

@@ -192,3 +192,8 @@ header p {
     font-size: 32px;
   }
 }
+
+.error {
+  color: #b04c3a;
+  font-size: 15px;
+}

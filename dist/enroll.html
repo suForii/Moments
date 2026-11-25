@@ -42,8 +42,10 @@
         <button id="capture-button" class="primary wide" hidden>Take photo</button
         ><canvas id="canvas" hidden></canvas
         ><button id="complete" class="complete" disabled>Complete selfie setup</button>
+        <p id="message" class="error" role="alert"></p>
         <p class="note">
-          Demo only: photos stay in this browser and are not uploaded or used for face matching.
+          Your selfies stay on this device. Only a face signature is saved, and you can delete it
+          anytime in account settings.
         </p>
         <div id="done" hidden>
           <strong>You're all set.</strong
@@ -51,6 +53,7 @@
         </div>
       </section>
     </main>
-    <script src="enroll.js"></script>
+    <script src="vendor/supabase.js"></script>
+    <script type="module" src="enroll.js"></script>
   </body>
 </html>
