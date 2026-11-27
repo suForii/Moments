@@ -16,4 +16,9 @@ Phones cannot reach localhost, so use "Use this computer instead" for selfies.
 3. Under Authentication → URL Configuration, set the site URL and add `<site>/**` as a redirect.
 4. Host `dist/` (for example on Cloudflare Pages, no build step). HTTPS is needed for cameras.
 
+## Live test site
+
+https://moments-dcj.pages.dev, on Cloudflare Pages project `moments`.
+To redeploy after `npx wrangler login`: `npm run deploy`.
+
 The face match threshold is `match_distance` in `private.settings`. Lower is stricter.
